@@ -1,38 +1,45 @@
 import hashlib
 import requests
 import json
-import random
 import time
+import sys
 
-def proof_of_work(last_proof):
-    proof = random.random()
+def proof_of_work(last_proof, difficulty):
+    print("Starting proof search!")
+    proof = 0
 
-    while valid_proof(last_proof, proof) is False:
+    last_hash = hashlib.sha256(f'{last_proof}'.encode()).hexdigest()
 
+    while valid_proof(last_hash, last_proof, proof, difficulty) is False:
         proof +=1
-
+    print(proof)
     return proof
 
-def valid_proof(last_proof, proof):
-    last_hash = hashlib.sha256(str(last_proof).encode()).hexdigest()
-    guess = hashlib.sha256(str(proof).encode()).hexdigest()
+def valid_proof(last_hash, last_proof, proof, difficulty):
+    guess = hashlib.sha256(f"{last_proof}{proof}".encode()).hexdigest()
 
-    return guess[:last_proof["difficulty"]] == last_proof["difficulty"] * "0"
+    if guess[:difficulty] == difficulty * "0":
+        print("Found valid proof!")
+        return True
+    else:
+        return False
 
 if __name__ == '__main__':
-    node = "https://lambda-treasure-hunt.herokuapp.com/api/bc"
-    headers={"Authorization": "Token 103b91d44d0b4d88ee6d3a6fda97355cafc575b0"}
+    if len(sys.argv) > 1:
+        node = sys.argv[1]
+    else:
+        node = "https://lambda-treasure-hunt.herokuapp.com/api/bc"
+        headers={"Authorization": "Token 103b91d44d0b4d88ee6d3a6fda97355cafc575b0"}
 
     while True:
-        r = requests.get(url=node+"/last_proof", headers=headers)
-        cooldown = r.json()["cooldown"]
-        time.sleep(cooldown + .2)
-        data = r.json()
-        new_proof = proof_of_work(data.get('proof'))
+        last_data = requests.get(url=node+"/last_proof", headers=headers)
+        data = last_data.json()
+        time.sleep(data["cooldown"])
+        new_proof = proof_of_work(data["proof"], data["difficulty"])
 
         post_data = {"proof": new_proof}
 
-        r = requests.post(url=node + "/mine", json=post_data)
-        cooldown = r.json()["cooldown"]
-        time.sleep(cooldown + .2)
-        data = r.json()
+        r = requests.post(url=node+"/mine", json=post_data, headers=headers)
+        post_data = r.json()
+        time.sleep(post_data["cooldown"])
+        
