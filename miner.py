@@ -29,7 +29,7 @@ if __name__ == '__main__':
         node = sys.argv[1]
     else:
         node = "https://lambda-treasure-hunt.herokuapp.com/api/bc"
-        headers={"Authorization": "Token 103b91d44d0b4d88ee6d3a6fda97355cafc575b0"}
+        headers={"Authorization": f"Token {input('token >>>')}"}
 
     while True:
         last_data = requests.get(url=node+"/last_proof", headers=headers)
